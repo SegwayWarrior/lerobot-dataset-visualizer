@@ -123,7 +123,11 @@ const QUICK_ADD_DEFS: QuickAddDef[] = [
     kind: "subtask",
     label: "subtask",
     fields: [
-      { name: "label", placeholder: "grasp the handle of the sponge", grow: true },
+      {
+        name: "label",
+        placeholder: "grasp the handle of the sponge",
+        grow: true,
+      },
     ],
     build: ({ label }, { ts }) => {
       const text = label.trim();
@@ -144,7 +148,11 @@ const QUICK_ADD_DEFS: QuickAddDef[] = [
     kind: "plan",
     label: "plan",
     fields: [
-      { name: "label", placeholder: "1. grab sponge / 2. wipe / 3. tidy", grow: true },
+      {
+        name: "label",
+        placeholder: "1. grab sponge / 2. wipe / 3. tidy",
+        grow: true,
+      },
     ],
     build: ({ label }, { ts }) => {
       const text = label.trim();
@@ -190,7 +198,11 @@ const QUICK_ADD_DEFS: QuickAddDef[] = [
     kind: "interjection",
     label: "interjection (user)",
     fields: [
-      { name: "label", placeholder: "user: actually skip the wipe…", grow: true },
+      {
+        name: "label",
+        placeholder: "user: actually skip the wipe…",
+        grow: true,
+      },
     ],
     build: ({ label }, { ts }) => {
       const text = label.trim();
@@ -329,7 +341,10 @@ interface RailGroupDef {
   key: string;
   title: string;
   dotClass: string;
-  match: (atom: LanguageAtom, otherCamera: (a: LanguageAtom) => boolean) => boolean;
+  match: (
+    atom: LanguageAtom,
+    otherCamera: (a: LanguageAtom) => boolean,
+  ) => boolean;
   label: (
     atom: LanguageAtom,
     helpers: {

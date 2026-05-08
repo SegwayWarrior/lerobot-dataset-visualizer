@@ -757,11 +757,7 @@ const QuickLabelPopup: React.FC<{
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div className="quick-popup-head">
-        <span
-          className={`kind-pill ${kind}`}
-        >
-          {kind}
-        </span>
+        <span className={`kind-pill ${kind}`}>{kind}</span>
         <select
           value={questionKind}
           onChange={(e) =>

@@ -731,9 +731,9 @@ function EpisodeViewerInner({
                     camera is detected from the video you draw on.
                   </li>
                   <li>
-                    Drag on any video to add a bbox question. Click any video
-                    to add a keypoint question. Confirm the popup with{" "}
-                    <kbd>↵</kbd>, or cancel with <kbd>Esc</kbd>.
+                    Drag on any video to add a bbox question. Click any video to
+                    add a keypoint question. Confirm the popup with <kbd>↵</kbd>
+                    , or cancel with <kbd>Esc</kbd>.
                   </li>
                 </ul>
               </div>
