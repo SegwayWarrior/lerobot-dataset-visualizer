@@ -64,16 +64,337 @@ type QuickAddKind =
   | "attribute"
   | "spatial";
 
-const QUICK_ADD_KINDS: { value: QuickAddKind; label: string }[] = [
-  { value: "task_aug", label: "task augmentation" },
-  { value: "subtask", label: "subtask" },
-  { value: "plan", label: "plan" },
-  { value: "memory", label: "memory" },
-  { value: "interjection", label: "interjection (user)" },
-  { value: "speech", label: "speech (robot say)" },
-  { value: "count", label: "vqa: count" },
-  { value: "attribute", label: "vqa: attribute" },
-  { value: "spatial", label: "vqa: spatial relation" },
+interface QuickAddField {
+  name: string;
+  placeholder: string;
+  type?: "text" | "number";
+  width?: string;
+  grow?: boolean;
+}
+
+interface QuickAddBuildCtx {
+  ts: number;
+  vqaCamera: string | null;
+}
+
+interface QuickAddDef {
+  kind: QuickAddKind;
+  label: string;
+  /** When true, the displayed timestamp is 0 (atom is pinned to episode start). */
+  atEpisodeStart?: boolean;
+  fields: QuickAddField[];
+  build: (
+    values: Record<string, string>,
+    ctx: QuickAddBuildCtx,
+  ) => LanguageAtom[] | null;
+}
+
+// Each text-style atom kind (and the simpler VQA shapes) is one entry: how
+// it appears in the dropdown, what fields the user fills, and how those
+// values map to one or two language atoms.
+const QUICK_ADD_DEFS: QuickAddDef[] = [
+  {
+    kind: "task_aug",
+    label: "task augmentation",
+    atEpisodeStart: true,
+    fields: [
+      {
+        name: "label",
+        placeholder: "pick up the blue cube and place it in the green box",
+        grow: true,
+      },
+    ],
+    build: ({ label }) => {
+      const text = label.trim();
+      if (!text) return null;
+      return [
+        {
+          role: "user",
+          content: text,
+          style: "task_aug",
+          timestamp: 0,
+          camera: null,
+          tool_calls: null,
+        },
+      ];
+    },
+  },
+  {
+    kind: "subtask",
+    label: "subtask",
+    fields: [
+      { name: "label", placeholder: "grasp the handle of the sponge", grow: true },
+    ],
+    build: ({ label }, { ts }) => {
+      const text = label.trim();
+      if (!text) return null;
+      return [
+        {
+          role: "assistant",
+          content: text,
+          style: "subtask",
+          timestamp: ts,
+          camera: null,
+          tool_calls: null,
+        },
+      ];
+    },
+  },
+  {
+    kind: "plan",
+    label: "plan",
+    fields: [
+      { name: "label", placeholder: "1. grab sponge / 2. wipe / 3. tidy", grow: true },
+    ],
+    build: ({ label }, { ts }) => {
+      const text = label.trim();
+      if (!text) return null;
+      return [
+        {
+          role: "assistant",
+          content: text,
+          style: "plan",
+          timestamp: ts,
+          camera: null,
+          tool_calls: null,
+        },
+      ];
+    },
+  },
+  {
+    kind: "memory",
+    label: "memory",
+    fields: [
+      {
+        name: "label",
+        placeholder: "sponge picked up; counter still dirty",
+        grow: true,
+      },
+    ],
+    build: ({ label }, { ts }) => {
+      const text = label.trim();
+      if (!text) return null;
+      return [
+        {
+          role: "assistant",
+          content: text,
+          style: "memory",
+          timestamp: ts,
+          camera: null,
+          tool_calls: null,
+        },
+      ];
+    },
+  },
+  {
+    kind: "interjection",
+    label: "interjection (user)",
+    fields: [
+      { name: "label", placeholder: "user: actually skip the wipe…", grow: true },
+    ],
+    build: ({ label }, { ts }) => {
+      const text = label.trim();
+      if (!text) return null;
+      return [
+        {
+          role: "user",
+          content: text,
+          style: "interjection",
+          timestamp: ts,
+          camera: null,
+          tool_calls: null,
+        },
+      ];
+    },
+  },
+  {
+    kind: "speech",
+    label: "speech (robot say)",
+    fields: [
+      {
+        name: "label",
+        placeholder: "robot say: Got it, skipping the wipe.",
+        grow: true,
+      },
+    ],
+    build: ({ label }, { ts }) => {
+      const text = label.trim();
+      if (!text) return null;
+      return [buildSpeechAtom(ts, text)];
+    },
+  },
+  {
+    kind: "count",
+    label: "vqa: count",
+    fields: [
+      { name: "label", placeholder: "object label (e.g. cup)", grow: true },
+      { name: "count", placeholder: "count", type: "number", width: "80px" },
+    ],
+    build: ({ label, count }, { ts, vqaCamera }) => {
+      const text = label.trim();
+      if (!text || !count) return null;
+      return [
+        {
+          role: "user",
+          content: `How many ${text}?`,
+          style: "vqa",
+          timestamp: ts,
+          camera: vqaCamera,
+          tool_calls: null,
+        },
+        {
+          role: "assistant",
+          content: JSON.stringify({ label: text, count: Number(count) }),
+          style: "vqa",
+          timestamp: ts,
+          camera: vqaCamera,
+          tool_calls: null,
+        },
+      ];
+    },
+  },
+  {
+    kind: "attribute",
+    label: "vqa: attribute",
+    fields: [
+      { name: "label", placeholder: "label", width: "120px" },
+      { name: "attribute", placeholder: "attribute (color)", width: "120px" },
+      { name: "value", placeholder: "value (red)", grow: true },
+    ],
+    build: ({ label, attribute, value }, { ts, vqaCamera }) => {
+      const text = label.trim();
+      if (!text || !attribute || !value) return null;
+      return [
+        {
+          role: "user",
+          content: `What ${attribute} is the ${text}?`,
+          style: "vqa",
+          timestamp: ts,
+          camera: vqaCamera,
+          tool_calls: null,
+        },
+        {
+          role: "assistant",
+          content: JSON.stringify({ label: text, attribute, value }),
+          style: "vqa",
+          timestamp: ts,
+          camera: vqaCamera,
+          tool_calls: null,
+        },
+      ];
+    },
+  },
+  {
+    kind: "spatial",
+    label: "vqa: spatial relation",
+    fields: [
+      { name: "subject", placeholder: "subject", width: "100px" },
+      { name: "relation", placeholder: "relation (right_of)", width: "130px" },
+      { name: "object", placeholder: "object", grow: true },
+    ],
+    build: ({ subject, relation, object }, { ts, vqaCamera }) => {
+      if (!subject || !relation || !object) return null;
+      return [
+        {
+          role: "user",
+          content: `Where is the ${subject} relative to the ${object}?`,
+          style: "vqa",
+          timestamp: ts,
+          camera: vqaCamera,
+          tool_calls: null,
+        },
+        {
+          role: "assistant",
+          content: JSON.stringify({ subject, relation, object }),
+          style: "vqa",
+          timestamp: ts,
+          camera: vqaCamera,
+          tool_calls: null,
+        },
+      ];
+    },
+  },
+];
+
+const QUICK_ADD_DEFS_BY_KIND: Record<QuickAddKind, QuickAddDef> =
+  QUICK_ADD_DEFS.reduce(
+    (acc, def) => {
+      acc[def.kind] = def;
+      return acc;
+    },
+    {} as Record<QuickAddKind, QuickAddDef>,
+  );
+
+interface RailGroupDef {
+  key: string;
+  title: string;
+  dotClass: string;
+  match: (atom: LanguageAtom, otherCamera: (a: LanguageAtom) => boolean) => boolean;
+  label: (
+    atom: LanguageAtom,
+    helpers: {
+      activeCamera: string | null;
+      firstLine: (s: string | null) => string;
+    },
+  ) => string;
+}
+
+const RAIL_GROUPS: RailGroupDef[] = [
+  {
+    key: "task_aug",
+    title: "task aug",
+    dotClass: "dot-task-aug",
+    match: (a) => a.style === "task_aug",
+    label: (a) => a.content || "(empty)",
+  },
+  {
+    key: "subtask",
+    title: "subtask",
+    dotClass: "dot-subtask",
+    match: (a) => a.style === "subtask",
+    label: (a) => a.content || "(empty)",
+  },
+  {
+    key: "plan",
+    title: "plan",
+    dotClass: "dot-plan",
+    match: (a) => a.style === "plan",
+    label: (a, { firstLine }) => firstLine(a.content),
+  },
+  {
+    key: "memory",
+    title: "memory",
+    dotClass: "dot-memory",
+    match: (a) => a.style === "memory",
+    label: (a, { firstLine }) => firstLine(a.content),
+  },
+  {
+    key: "interjection",
+    title: "interjection",
+    dotClass: "dot-interjection",
+    match: (a) => a.style === "interjection",
+    label: (a) => a.content || "(empty)",
+  },
+  {
+    key: "speech",
+    title: "speech",
+    dotClass: "dot-speech",
+    match: (a) => isSpeechAtom(a),
+    label: (a) => speechText(a) || "(empty)",
+  },
+  {
+    key: "vqa",
+    title: "vqa",
+    dotClass: "dot-vqa",
+    match: (a, otherCamera) => a.style === "vqa" && !otherCamera(a),
+    label: (a, { activeCamera }) => {
+      const role = a.role === "user" ? "Q" : "A";
+      const t = a.content || "";
+      const cameraSuffix =
+        a.camera && a.camera !== activeCamera ? `  [${a.camera}]` : "";
+      return `${role}: ${t.slice(0, 60)}${t.length > 60 ? "…" : ""}${cameraSuffix}`;
+    },
+  },
 ];
 
 function useJump(): (ts: number) => void {
@@ -109,14 +430,9 @@ export const AnnotationsPanel: React.FC<Props> = ({ cameraKeys }) => {
 
   // ============ Inline quick-add state ============
   const [qaKind, setQaKind] = useState<QuickAddKind>("subtask");
-  const [qaLabel, setQaLabel] = useState("");
-  const [qaCount, setQaCount] = useState<number | "">("");
-  const [qaAttr, setQaAttr] = useState("");
-  const [qaAttrVal, setQaAttrVal] = useState("");
-  const [qaSubject, setQaSubject] = useState("");
-  const [qaRel, setQaRel] = useState("");
-  const [qaObject, setQaObject] = useState("");
+  const [qaValues, setQaValues] = useState<Record<string, string>>({});
   const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const qaDef = QUICK_ADD_DEFS_BY_KIND[qaKind];
 
   // Initialize active camera once cameras arrive.
   React.useEffect(() => {
@@ -131,205 +447,45 @@ export const AnnotationsPanel: React.FC<Props> = ({ cameraKeys }) => {
   }, [setDrawMode]);
 
   // ============ Atom grouping for the rail ============
+  // The rail shows one section per atom-kind. Each kind is a single config
+  // entry: how to detect atoms in this kind, and how to label them in the row.
+  // VQA filters out other-camera answers when the dataset has multiple
+  // cameras so the rail mirrors the active video.
   const groups = useMemo(() => {
-    type Entry = { atom: LanguageAtom; idx: number; label: string };
-    const taskAug: Entry[] = [];
-    const subtask: Entry[] = [];
-    const plan: Entry[] = [];
-    const memory: Entry[] = [];
-    const interjection: Entry[] = [];
-    const speech: Entry[] = [];
-    const vqa: Entry[] = [];
-
-    atoms.forEach((a, idx) => {
-      if (a.style === "task_aug") {
-        taskAug.push({ atom: a, idx, label: a.content || "(empty)" });
-      } else if (a.style === "subtask") {
-        subtask.push({ atom: a, idx, label: a.content || "(empty)" });
-      } else if (a.style === "plan") {
-        plan.push({
-          atom: a,
+    const firstLine = (s: string | null) =>
+      (s || "").split("\n")[0] || "(empty)";
+    const otherCamera = (a: LanguageAtom): boolean =>
+      !!activeCamera &&
+      cameraKeys.length > 1 &&
+      a.camera != null &&
+      a.camera !== activeCamera;
+    return RAIL_GROUPS.map((def) => {
+      const entries = atoms
+        .map((atom, idx) => ({ atom, idx }))
+        .filter(({ atom }) => def.match(atom, otherCamera))
+        .map(({ atom, idx }) => ({
+          atom,
           idx,
-          label: (a.content || "").split("\n")[0] || "(empty)",
-        });
-      } else if (a.style === "memory") {
-        memory.push({
-          atom: a,
-          idx,
-          label: (a.content || "").split("\n")[0] || "(empty)",
-        });
-      } else if (a.style === "interjection") {
-        interjection.push({ atom: a, idx, label: a.content || "(empty)" });
-      } else if (isSpeechAtom(a)) {
-        speech.push({ atom: a, idx, label: speechText(a) || "(empty)" });
-      } else if (a.style === "vqa") {
-        // Multi-camera datasets emit one (vqa, user) + (vqa, assistant) per
-        // camera at each tick. Only show this camera's VQA in the rail so the
-        // user sees the answer that goes with the video they're looking at.
-        // Camera-agnostic VQA (a.camera == null) — e.g. older annotations —
-        // still shows everywhere.
-        if (
-          activeCamera &&
-          cameraKeys.length > 1 &&
-          a.camera != null &&
-          a.camera !== activeCamera
-        ) {
-          return;
-        }
-        const role = a.role === "user" ? "Q" : "A";
-        const t = a.content || "";
-        const cameraSuffix =
-          a.camera && a.camera !== activeCamera ? `  [${a.camera}]` : "";
-        vqa.push({
-          atom: a,
-          idx,
-          label: `${role}: ${t.slice(0, 60)}${t.length > 60 ? "…" : ""}${cameraSuffix}`,
-        });
-      }
+          label: def.label(atom, { activeCamera, firstLine }),
+        }))
+        .sort((a, b) => a.atom.timestamp - b.atom.timestamp);
+      return { def, entries };
     });
-
-    const sortByTs = <T extends { atom: LanguageAtom }>(arr: T[]) =>
-      arr.sort((x, y) => x.atom.timestamp - y.atom.timestamp);
-    return {
-      taskAug: sortByTs(taskAug),
-      subtask: sortByTs(subtask),
-      plan: sortByTs(plan),
-      memory: sortByTs(memory),
-      interjection: sortByTs(interjection),
-      speech: sortByTs(speech),
-      vqa: sortByTs(vqa),
-    };
   }, [atoms, activeCamera, cameraKeys.length]);
 
-  // ============ Quick-add handlers ============
+  // ============ Quick-add handler ============
+  // VQA quick-adds inherit the active camera so per-camera filtering shows
+  // them in the right rail / overlay. Non-VQA atoms stay camera-agnostic
+  // (the def's `build` ignores `vqaCamera` for those).
   const handleQuickAdd = () => {
     const ts = snap(currentTime);
-    const text = qaLabel.trim();
-    const newAtoms: LanguageAtom[] = [];
-
-    // VQA quick-adds inherit the active camera so per-camera filtering
-    // shows them in the right rail / overlay. Non-VQA atoms stay
-    // camera-agnostic.
     const vqaCamera = activeCamera ?? cameraKeys[0] ?? null;
-
-    if (qaKind === "task_aug") {
-      if (!text) return;
-      newAtoms.push({
-        role: "user",
-        content: text,
-        style: "task_aug",
-        timestamp: 0,
-        camera: null,
-        tool_calls: null,
-      });
-    } else if (
-      qaKind === "subtask" ||
-      qaKind === "plan" ||
-      qaKind === "memory"
-    ) {
-      if (!text) return;
-      newAtoms.push({
-        role: "assistant",
-        content: text,
-        style: qaKind,
-        timestamp: ts,
-        camera: null,
-        tool_calls: null,
-      });
-    } else if (qaKind === "interjection") {
-      if (!text) return;
-      newAtoms.push({
-        role: "user",
-        content: text,
-        style: "interjection",
-        timestamp: ts,
-        camera: null,
-        tool_calls: null,
-      });
-    } else if (qaKind === "speech") {
-      if (!text) return;
-      newAtoms.push(buildSpeechAtom(ts, text));
-    } else if (qaKind === "count") {
-      if (!text || qaCount === "") return;
-      newAtoms.push(
-        {
-          role: "user",
-          content: `How many ${text}?`,
-          style: "vqa",
-          timestamp: ts,
-          camera: vqaCamera,
-          tool_calls: null,
-        },
-        {
-          role: "assistant",
-          content: JSON.stringify({ label: text, count: Number(qaCount) }),
-          style: "vqa",
-          timestamp: ts,
-          camera: vqaCamera,
-          tool_calls: null,
-        },
-      );
-    } else if (qaKind === "attribute") {
-      if (!text || !qaAttr || !qaAttrVal) return;
-      newAtoms.push(
-        {
-          role: "user",
-          content: `What ${qaAttr} is the ${text}?`,
-          style: "vqa",
-          timestamp: ts,
-          camera: vqaCamera,
-          tool_calls: null,
-        },
-        {
-          role: "assistant",
-          content: JSON.stringify({
-            label: text,
-            attribute: qaAttr,
-            value: qaAttrVal,
-          }),
-          style: "vqa",
-          timestamp: ts,
-          camera: vqaCamera,
-          tool_calls: null,
-        },
-      );
-    } else if (qaKind === "spatial") {
-      if (!qaSubject || !qaRel || !qaObject) return;
-      newAtoms.push(
-        {
-          role: "user",
-          content: `Where is the ${qaSubject} relative to the ${qaObject}?`,
-          style: "vqa",
-          timestamp: ts,
-          camera: vqaCamera,
-          tool_calls: null,
-        },
-        {
-          role: "assistant",
-          content: JSON.stringify({
-            subject: qaSubject,
-            relation: qaRel,
-            object: qaObject,
-          }),
-          style: "vqa",
-          timestamp: ts,
-          camera: vqaCamera,
-          tool_calls: null,
-        },
-      );
-    }
-
-    if (!newAtoms.length) return;
+    const newAtoms = qaDef.build(qaValues, { ts, vqaCamera });
+    if (!newAtoms || !newAtoms.length) return;
     addAtoms(newAtoms);
     // Select the freshly added atom (last one added) so the editor opens for it.
     selectAtom(atoms.length + newAtoms.length - 1);
-    setQaLabel("");
-    setQaCount("");
-    setQaAttr("");
-    setQaAttrVal("");
-    setQaSubject("");
-    setQaRel("");
-    setQaObject("");
+    setQaValues({});
   };
 
   // ============ Save / export ============
@@ -412,153 +568,39 @@ export const AnnotationsPanel: React.FC<Props> = ({ cameraKeys }) => {
         </div>
         <div className="quick-add">
           <span className="ts-pill">
-            t = {qaKind === "task_aug" ? fmtTime(0) : fmtTime(currentTime)}
+            t = {qaDef.atEpisodeStart ? fmtTime(0) : fmtTime(currentTime)}
           </span>
           <select
             value={qaKind}
-            onChange={(e) => setQaKind(e.target.value as QuickAddKind)}
+            onChange={(e) => {
+              setQaKind(e.target.value as QuickAddKind);
+              setQaValues({});
+            }}
           >
-            {QUICK_ADD_KINDS.map((k) => (
-              <option key={k.value} value={k.value}>
-                {k.label}
+            {QUICK_ADD_DEFS.map((d) => (
+              <option key={d.kind} value={d.kind}>
+                {d.label}
               </option>
             ))}
           </select>
-          {qaKind === "task_aug" && (
+          {qaDef.fields.map((f, i) => (
             <input
-              type="text"
-              placeholder="pick up the blue cube and place it in the green box"
-              className="grow"
-              value={qaLabel}
-              onChange={(e) => setQaLabel(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleQuickAdd()}
+              key={f.name}
+              type={f.type === "number" ? "number" : "text"}
+              placeholder={f.placeholder}
+              className={f.grow ? "grow" : undefined}
+              style={f.width ? { width: f.width } : undefined}
+              value={qaValues[f.name] ?? ""}
+              onChange={(e) =>
+                setQaValues((v) => ({ ...v, [f.name]: e.target.value }))
+              }
+              onKeyDown={
+                i === qaDef.fields.length - 1
+                  ? (e) => e.key === "Enter" && handleQuickAdd()
+                  : undefined
+              }
             />
-          )}
-          {qaKind === "subtask" && (
-            <input
-              type="text"
-              placeholder="grasp the handle of the sponge"
-              className="grow"
-              value={qaLabel}
-              onChange={(e) => setQaLabel(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleQuickAdd()}
-            />
-          )}
-          {qaKind === "plan" && (
-            <input
-              type="text"
-              placeholder="1. grab sponge / 2. wipe / 3. tidy"
-              className="grow"
-              value={qaLabel}
-              onChange={(e) => setQaLabel(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleQuickAdd()}
-            />
-          )}
-          {qaKind === "memory" && (
-            <input
-              type="text"
-              placeholder="sponge picked up; counter still dirty"
-              className="grow"
-              value={qaLabel}
-              onChange={(e) => setQaLabel(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleQuickAdd()}
-            />
-          )}
-          {qaKind === "interjection" && (
-            <input
-              type="text"
-              placeholder="user: actually skip the wipe…"
-              className="grow"
-              value={qaLabel}
-              onChange={(e) => setQaLabel(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleQuickAdd()}
-            />
-          )}
-          {qaKind === "speech" && (
-            <input
-              type="text"
-              placeholder="robot say: Got it, skipping the wipe."
-              className="grow"
-              value={qaLabel}
-              onChange={(e) => setQaLabel(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleQuickAdd()}
-            />
-          )}
-          {qaKind === "count" && (
-            <>
-              <input
-                type="text"
-                placeholder="object label (e.g. cup)"
-                className="grow"
-                value={qaLabel}
-                onChange={(e) => setQaLabel(e.target.value)}
-              />
-              <input
-                type="number"
-                placeholder="count"
-                style={{ width: 80 }}
-                value={qaCount}
-                onChange={(e) =>
-                  setQaCount(
-                    e.target.value === "" ? "" : Number(e.target.value),
-                  )
-                }
-                onKeyDown={(e) => e.key === "Enter" && handleQuickAdd()}
-              />
-            </>
-          )}
-          {qaKind === "attribute" && (
-            <>
-              <input
-                type="text"
-                placeholder="label"
-                style={{ width: 120 }}
-                value={qaLabel}
-                onChange={(e) => setQaLabel(e.target.value)}
-              />
-              <input
-                type="text"
-                placeholder="attribute (color)"
-                style={{ width: 120 }}
-                value={qaAttr}
-                onChange={(e) => setQaAttr(e.target.value)}
-              />
-              <input
-                type="text"
-                placeholder="value (red)"
-                className="grow"
-                value={qaAttrVal}
-                onChange={(e) => setQaAttrVal(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleQuickAdd()}
-              />
-            </>
-          )}
-          {qaKind === "spatial" && (
-            <>
-              <input
-                type="text"
-                placeholder="subject"
-                style={{ width: 100 }}
-                value={qaSubject}
-                onChange={(e) => setQaSubject(e.target.value)}
-              />
-              <input
-                type="text"
-                placeholder="relation (right_of)"
-                style={{ width: 130 }}
-                value={qaRel}
-                onChange={(e) => setQaRel(e.target.value)}
-              />
-              <input
-                type="text"
-                placeholder="object"
-                className="grow"
-                value={qaObject}
-                onChange={(e) => setQaObject(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleQuickAdd()}
-              />
-            </>
-          )}
+          ))}
           <button className="add-btn" onClick={handleQuickAdd}>
             + Add at frame
           </button>
@@ -581,48 +623,15 @@ export const AnnotationsPanel: React.FC<Props> = ({ cameraKeys }) => {
               Add text above or draw on the active video.
             </div>
           )}
-          <RailGroup
-            title="task aug"
-            dotClass="dot-task-aug"
-            entries={groups.taskAug}
-            currentTime={currentTime}
-          />
-          <RailGroup
-            title="subtask"
-            dotClass="dot-subtask"
-            entries={groups.subtask}
-            currentTime={currentTime}
-          />
-          <RailGroup
-            title="plan"
-            dotClass="dot-plan"
-            entries={groups.plan}
-            currentTime={currentTime}
-          />
-          <RailGroup
-            title="memory"
-            dotClass="dot-memory"
-            entries={groups.memory}
-            currentTime={currentTime}
-          />
-          <RailGroup
-            title="interjection"
-            dotClass="dot-interjection"
-            entries={groups.interjection}
-            currentTime={currentTime}
-          />
-          <RailGroup
-            title="speech"
-            dotClass="dot-speech"
-            entries={groups.speech}
-            currentTime={currentTime}
-          />
-          <RailGroup
-            title="vqa"
-            dotClass="dot-vqa"
-            entries={groups.vqa}
-            currentTime={currentTime}
-          />
+          {groups.map(({ def, entries }) => (
+            <RailGroup
+              key={def.key}
+              title={def.title}
+              dotClass={def.dotClass}
+              entries={entries}
+              currentTime={currentTime}
+            />
+          ))}
         </div>
 
         <div className="editor inspector">

@@ -995,17 +995,8 @@ function extractLanguageAtoms(
       typeof r.role === "string" ? (r.role as LanguageAtom["role"]) : null;
     if (!role) return null;
     const style =
-      typeof r.style === "string"
-        ? (r.style as LanguageAtom["style"])
-        : r.style === null
-          ? null
-          : null;
-    const content =
-      typeof r.content === "string"
-        ? r.content
-        : r.content === null || r.content === undefined
-          ? null
-          : null;
+      typeof r.style === "string" ? (r.style as LanguageAtom["style"]) : null;
+    const content = typeof r.content === "string" ? r.content : null;
     const timestamp =
       typeof r.timestamp === "number"
         ? r.timestamp

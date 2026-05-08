@@ -511,6 +511,49 @@
   gap: 6px;
   justify-content: flex-end;
 }
+.annotations-skin .quick-popup .kind-pill {
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  border: 1px solid currentColor;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.annotations-skin .quick-popup .kind-pill.bbox {
+  color: var(--hf-cyan);
+  background: rgba(56, 189, 248, 0.16);
+}
+.annotations-skin .quick-popup .kind-pill.keypoint {
+  color: var(--hf-yellow);
+  background: rgba(255, 210, 30, 0.16);
+}
+.annotations-skin .quick-popup .popup-btn {
+  font-size: 11px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-1);
+  background: transparent;
+  color: var(--fg-2);
+  cursor: pointer;
+}
+.annotations-skin .quick-popup .popup-btn:hover {
+  background: var(--surface-1);
+  color: var(--fg-1);
+}
+.annotations-skin .quick-popup .popup-btn.primary {
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.12);
+  color: #c5ecff;
+}
+.annotations-skin .quick-popup .popup-btn.primary:hover {
+  background: rgba(56, 189, 248, 0.2);
+}
+.annotations-skin .quick-popup .popup-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 /* ----- Inline quick-add bar (above the timeline) ----- */
 .annotations-skin .quick-add {
@@ -559,17 +602,6 @@
 }
 .annotations-skin .grounding-intro li::marker {
   color: var(--fg-3);
-}
-.annotations-skin .grounding-intro kbd {
-  display: inline-block;
-  padding: 0 5px;
-  border: 1px solid var(--border-1);
-  border-radius: 4px;
-  background: var(--surface-2);
-  color: var(--fg-2);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 11px;
-  line-height: 1.6;
 }
 
 /* ----- Workspace: annotation list + inspector ----- */

@@ -18,7 +18,11 @@
  */
 
 import React, { useEffect, useRef, useState } from "react";
-import { useAnnotations } from "../context/annotations-context";
+import {
+  useAnnotations,
+  type PendingBboxDraw,
+  type PendingPointDraw,
+} from "../context/annotations-context";
 import { useTime } from "../context/time-context";
 import {
   classifyVqa,
@@ -222,15 +226,11 @@ const CLICK_THRESHOLD_PX = 4;
 interface FinalizingState {
   /** Where the popup anchors itself, in canvas-relative pixels (top-right of bbox / right of point). */
   anchor: { x: number; y: number };
-  /** What the user just drew. */
-  draw: PointDrawShape | BboxDrawShape;
+  /** What the user just drew (label/camera filled in on submit). */
+  draw:
+    | Pick<PendingBboxDraw, "kind" | "bbox">
+    | Pick<PendingPointDraw, "kind" | "point">;
 }
-
-type PointDrawShape = { kind: "keypoint"; point: [number, number] };
-type BboxDrawShape = {
-  kind: "bbox";
-  bbox: [number, number, number, number];
-};
 
 export const VideoOverlayCanvas: React.FC<Props> = ({ videoEl, cameraKey }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -753,23 +753,12 @@ const QuickLabelPopup: React.FC<{
   return (
     <div
       ref={popupRef}
-      style={{
-        position: "absolute",
-        left: 0,
-        top: 0,
-        zIndex: 30,
-        pointerEvents: "auto",
-      }}
+      className="quick-popup"
       onPointerDown={(e) => e.stopPropagation()}
-      className="bg-[var(--surface-1)] border border-white/15 rounded-md shadow-xl p-2 flex flex-col gap-1.5 min-w-[200px]"
     >
-      <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-slate-400">
+      <div className="quick-popup-head">
         <span
-          className={`px-1.5 py-0.5 rounded border ${
-            kind === "bbox"
-              ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/30"
-              : "bg-yellow-500/20 text-yellow-300 border-yellow-500/30"
-          }`}
+          className={`kind-pill ${kind}`}
         >
           {kind}
         </span>
@@ -778,7 +767,7 @@ const QuickLabelPopup: React.FC<{
           onChange={(e) =>
             onQuestionKindChange(e.target.value as "detect" | "point")
           }
-          className="ml-auto bg-transparent border border-white/10 rounded px-1 py-0.5 text-[10px] text-slate-300"
+          style={{ marginLeft: "auto" }}
         >
           <option value="detect">where is …?</option>
           <option value="point">point to …</option>
@@ -796,19 +785,15 @@ const QuickLabelPopup: React.FC<{
           if (e.key === "Enter") onSubmit();
           if (e.key === "Escape") onCancel();
         }}
-        className="px-2 py-1 rounded bg-[var(--surface-2,rgba(255,255,255,0.04))] border border-white/10 text-sm text-slate-200 outline-none focus:border-cyan-400/60"
       />
-      <div className="flex justify-end gap-1">
-        <button
-          onClick={onCancel}
-          className="text-[10px] h-6 px-2 rounded border border-white/10 text-slate-300 hover:bg-white/5"
-        >
+      <div className="quick-popup-actions">
+        <button onClick={onCancel} className="popup-btn">
           cancel
         </button>
         <button
           onClick={onSubmit}
           disabled={!label.trim()}
-          className="text-[10px] h-6 px-2 rounded border border-cyan-500/40 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20 disabled:opacity-40"
+          className="popup-btn primary"
         >
           add ↵
         </button>
