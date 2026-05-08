@@ -240,19 +240,6 @@
   color: var(--fg-3);
 }
 
-/* ----- Hint banner ----- */
-.annotations-skin .hint-banner {
-  background: rgba(255, 210, 30, 0.08);
-  border: 1px solid rgba(255, 210, 30, 0.3);
-  border-radius: var(--radius-md);
-  padding: 8px 10px;
-  font-size: 12px;
-  color: #fde68a;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-
 /* ----- Field labels ----- */
 .annotations-skin .field-label {
   display: block;
@@ -270,8 +257,7 @@
   gap: 12px;
 }
 .annotations-skin .annotation-actionbar,
-.annotations-skin .annotation-composer,
-.annotations-skin .grounding-panel {
+.annotations-skin .annotation-composer {
   background: var(--surface-0);
   border: 1px solid var(--border-1);
   border-radius: var(--radius-lg);
@@ -294,7 +280,6 @@
 }
 .annotations-skin .annotation-actionbar p,
 .annotations-skin .annotation-composer p,
-.annotations-skin .grounding-panel p,
 .annotations-skin .list-head p {
   margin: 2px 0 0;
   font-size: 12px;
@@ -337,13 +322,6 @@
   gap: 12px;
   padding: 12px;
   align-items: center;
-}
-.annotations-skin .grounding-panel {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  align-items: center;
-  padding: 10px 12px;
 }
 .annotations-skin .camera-picker {
   display: flex;
@@ -559,10 +537,39 @@
 .annotations-skin .quick-add .ts-pill {
   flex: none;
 }
-.annotations-skin .hint-banner {
-  background: rgba(52, 211, 153, 0.08);
-  border-color: rgba(52, 211, 153, 0.28);
-  color: #a7f3d0;
+/* ----- Grounded VQA intro card (under video) ----- */
+.annotations-skin .grounding-intro {
+  background: var(--surface-0);
+  border: 1px solid var(--border-1);
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.annotations-skin .grounding-intro ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--fg-3);
+}
+.annotations-skin .grounding-intro li::marker {
+  color: var(--fg-3);
+}
+.annotations-skin .grounding-intro kbd {
+  display: inline-block;
+  padding: 0 5px;
+  border: 1px solid var(--border-1);
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--fg-2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.6;
 }
 
 /* ----- Workspace: annotation list + inspector ----- */
@@ -653,8 +660,7 @@
 }
 
 @media (max-width: 900px) {
-  .annotations-skin .annotation-actionbar,
-  .annotations-skin .grounding-panel {
+  .annotations-skin .annotation-actionbar {
     align-items: flex-start;
     flex-direction: column;
   }

@@ -565,25 +565,6 @@ export const AnnotationsPanel: React.FC<Props> = ({ cameraKeys }) => {
         </div>
       </section>
 
-      <div className="grounding-panel">
-        <div>
-          <span className="section-kicker">Grounded VQA</span>
-          <p>
-            Draw directly on the active video to create visual questions. Drag
-            for a bounding box, click for a point. The camera is detected from
-            the video you draw on.
-          </p>
-        </div>
-      </div>
-
-      <div className="hint-banner">
-        <span>
-          Drag on any video to add a bbox question. Click any video to add a
-          keypoint question. Confirm the popup with <kbd>↵</kbd>, or cancel with{" "}
-          <kbd>Esc</kbd>.
-        </span>
-      </div>
-
       <div className="workspace inspector-workspace">
         <div className="rail annotation-list">
           <div className="list-head">

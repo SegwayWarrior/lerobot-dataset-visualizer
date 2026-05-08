@@ -722,6 +722,21 @@ function EpisodeViewerInner({
                   onVideosReady={() => setVideosReady(true)}
                 />
               )}
+              <div className="grounding-intro">
+                <span className="section-kicker">Grounded VQA</span>
+                <ul>
+                  <li>
+                    Draw directly on the active video to create visual
+                    questions. Drag for a bounding box, click for a point. The
+                    camera is detected from the video you draw on.
+                  </li>
+                  <li>
+                    Drag on any video to add a bbox question. Click any video
+                    to add a keypoint question. Confirm the popup with{" "}
+                    <kbd>↵</kbd>, or cancel with <kbd>Esc</kbd>.
+                  </li>
+                </ul>
+              </div>
               <PlaybackBar />
               <AnnotationsTimeline duration={data.duration} />
               <AnnotationsPanel
