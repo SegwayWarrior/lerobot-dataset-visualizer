@@ -53,6 +53,9 @@ function getRobotConfig(robotType: string | null) {
       scale: 3,
     };
   }
+  if (lower.includes("xarm")) {
+    return { urdfUrl: `/urdf/xarm_lite6/robot.urdf`, scale: 1 };
+  }
   if (lower.includes("so100") && !lower.includes("so101")) {
     return { urdfUrl: `${URDF_BASE_URL}/so101/so100.urdf`, scale: 10 };
   }
@@ -189,6 +192,7 @@ const SINGLE_ARM_TIP_NAMES = [
 ];
 const DUAL_ARM_TIP_NAMES = ["openarm_left_hand_tcp", "openarm_right_hand_tcp"];
 const G1_TIP_NAMES = ["left_hand_palm_link", "right_hand_palm_link"];
+const XARM_TIP_NAMES = ["left_link_tcp", "right_link_tcp"];
 const TRAIL_DURATION = 1.0;
 const TRAIL_COLORS = [new THREE.Color("#ff6600"), new THREE.Color("#00aaff")];
 const MAX_TRAIL_POINTS = 300;
@@ -282,6 +286,7 @@ function RobotScene({
     setError(null);
     const isOpenArm = urdfUrl.includes("openarm");
     const isG1 = urdfUrl.includes("g1");
+    const isXArm = urdfUrl.includes("xarm_lite6");
     const manager = new THREE.LoadingManager();
     const loader = new URDFLoader(manager);
     // URDFLoader (node_modules/urdf-loader/src/URDFLoader.js ~line 556) does
@@ -419,6 +424,11 @@ function RobotScene({
           color = "#171a20";
           metalness = 0.15;
           roughness = 0.75;
+        } else if (url.includes("xarm_description") || url.includes("lite6_q2r2")) {
+          // xArm structural parts — brushed aluminium
+          color = "#8a9bb0";
+          metalness = 0.55;
+          roughness = 0.4;
         } else if (isOpenArm) {
           color = url.includes("body_link0") ? "#3a3a4a" : "#f5f5f5";
           metalness = 0.15;
@@ -526,13 +536,15 @@ function RobotScene({
 
         const tipNames = isG1
           ? G1_TIP_NAMES
-          : isOpenArm
-            ? DUAL_ARM_TIP_NAMES
-            : SINGLE_ARM_TIP_NAMES;
+          : isXArm
+            ? XARM_TIP_NAMES
+            : isOpenArm
+              ? DUAL_ARM_TIP_NAMES
+              : SINGLE_ARM_TIP_NAMES;
         const tips: THREE.Object3D[] = [];
         for (const name of tipNames) {
           if (robot.frames[name]) tips.push(robot.frames[name]);
-          if (!isOpenArm && !isG1 && tips.length === 1) break;
+          if (!isOpenArm && !isG1 && !isXArm && tips.length === 1) break;
         }
         tipLinksRef.current = tips;
         ensureTrails(tips.length);

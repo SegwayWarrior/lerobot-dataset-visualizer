@@ -1,0 +1,4 @@
+# Symlinks to local ROS packages — recreate with setup_urdf_meshes.sh
+xarm_description
+realsense2_description
+lite6_q2r2
